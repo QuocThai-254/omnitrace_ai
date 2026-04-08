@@ -1,0 +1,14 @@
+fastapi
+uvicorn
+firebase-admin
+supabase
+google-generativeai
+python-dotenv
+requests
+beautifulsoup4
+pydantic
+pydantic-settings
+cors
+sherlock-project
+playwright
+pytest-playwright
