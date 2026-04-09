@@ -1,15 +1,13 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { auth } from "@/lib/firebase";
-import { signInWithEmailAndPassword, onAuthStateChanged, signOut } from "firebase/auth";
 import axios from "axios";
 
-const API_BASE = "http://localhost:8000";
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
 export default function Home() {
   const [user, setUser] = useState<any>(null);
-  const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [geminiKey, setGeminiKey] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
@@ -20,24 +18,33 @@ export default function Home() {
   const [analysis, setAnalysis] = useState<any>(null);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      setUser(user);
-    });
+    // Check if user is already logged in
+    const savedUser = localStorage.getItem("omnitrace_user");
+    if (savedUser) {
+      setUser(JSON.parse(savedUser));
+    }
     const savedKey = localStorage.getItem("gemini_api_key");
     if (savedKey) setGeminiKey(savedKey);
-    return () => unsubscribe();
   }, []);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    setLoading(true);
     try {
-      await signInWithEmailAndPassword(auth, email, password);
+      const res = await axios.post(`${API_BASE}/login`, { username, password });
+      setUser(res.data.user);
+      localStorage.setItem("omnitrace_user", JSON.stringify(res.data.user));
     } catch (error: any) {
-      alert("Login failed: " + error.message);
+      alert("Login failed: " + (error.response?.data?.detail || error.message));
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleLogout = () => signOut(auth);
+  const handleLogout = () => {
+    setUser(null);
+    localStorage.removeItem("omnitrace_user");
+  };
 
   const saveGeminiKey = () => {
     localStorage.setItem("gemini_api_key", geminiKey);
@@ -59,11 +66,11 @@ export default function Home() {
     }
   };
 
-  const scanUsername = async (username: string) => {
-    setSelectedUsername(username);
+  const scanUsername = async (u: string) => {
+    setSelectedUsername(u);
     setLoading(true);
     try {
-      const res = await axios.post(`${API_BASE}/scan-username`, { username });
+      const res = await axios.post(`${API_BASE}/scan-username`, { username: u });
       setScanResults(res.data.results);
       setAnalysis(null);
     } catch (err) {
@@ -97,10 +104,10 @@ export default function Home() {
           <form onSubmit={handleLogin}>
             <input 
               className="input" 
-              type="email" 
-              placeholder="Email" 
-              value={email} 
-              onChange={(e) => setEmail(e.target.value)} 
+              type="text" 
+              placeholder="Username" 
+              value={username} 
+              onChange={(e) => setUsername(e.target.value)} 
               required 
             />
             <input 
@@ -111,10 +118,12 @@ export default function Home() {
               onChange={(e) => setPassword(e.target.value)} 
               required 
             />
-            <button className="btn btn-primary" style={{ width: '100%' }} type="submit">Login</button>
+            <button className="btn btn-primary" style={{ width: '100%' }} type="submit" disabled={loading}>
+              {loading ? "Logging in..." : "Login"}
+            </button>
           </form>
           <p style={{ marginTop: '1rem', fontSize: '0.8rem', color: 'var(--text-muted)', textAlign: 'center' }}>
-            Use the credentials provided by your administrator.
+            Admin Login Only
           </p>
         </div>
       </div>
@@ -126,16 +135,12 @@ export default function Home() {
       <header className="header">
         <div>
           <h1>OmniTrace AI Dashboard</h1>
-          <p style={{ color: 'var(--text-muted)' }}>OSINT & Behavioral Intelligence</p>
+          <p style={{ color: 'var(--text-muted)' }}>Logged in as: <strong>{user.username}</strong></p>
         </div>
-        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-          <span style={{ fontSize: '0.9rem' }}>{user.email}</span>
-          <button className="btn" style={{ background: '#e2e8f0' }} onClick={handleLogout}>Logout</button>
-        </div>
+        <button className="btn" style={{ background: '#e2e8f0' }} onClick={handleLogout}>Logout</button>
       </header>
 
       <div className="grid">
-        {/* Configuration Card */}
         <div className="card">
           <h3>Configuration</h3>
           <p style={{ fontSize: '0.875rem', marginBottom: '1rem', color: 'var(--text-muted)' }}>
@@ -151,7 +156,6 @@ export default function Home() {
           <button className="btn btn-primary" onClick={saveGeminiKey}>Save Key</button>
         </div>
 
-        {/* Identity Discovery Card */}
         <div className="card" style={{ gridColumn: 'span 2' }}>
           <h3>Identity Discovery</h3>
           <p style={{ fontSize: '0.875rem', marginBottom: '1rem', color: 'var(--text-muted)' }}>
@@ -161,7 +165,7 @@ export default function Home() {
             <input 
               className="input" 
               style={{ marginBottom: 0 }}
-              placeholder="e.g. Son Tung M-TP or Tech CEO" 
+              placeholder="e.g. Son Tung M-TP" 
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
@@ -198,7 +202,7 @@ export default function Home() {
               {scanResults.map((res, i) => (
                 <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '0.5rem 0', borderBottom: '1px solid var(--border)' }}>
                   <span>{res.platform}</span>
-                  <a href={res.url} target="_blank" className="badge badge-active" style={{ textDecoration: 'none' }}>Visit Profile</a>
+                  <a href={res.url} target="_blank" rel="noreferrer" className="badge badge-active" style={{ textDecoration: 'none' }}>Visit Profile</a>
                 </div>
               ))}
             </div>
@@ -218,19 +222,19 @@ export default function Home() {
               <div style={{ marginTop: '1rem' }}>
                 <div style={{ marginBottom: '1.5rem' }}>
                   <h4 style={{ color: 'var(--primary)' }}>Sentiment Trend</h4>
-                  <p>{analysis.sentiment_trend || analysis["Sentiment Trend"]}</p>
+                  <p>{analysis.sentiment_trend || analysis["sentiment_trend"]}</p>
                 </div>
                 <div style={{ marginBottom: '1.5rem' }}>
                   <h4 style={{ color: 'var(--primary)' }}>Topic Heatmap</h4>
-                  <p>{analysis.topic_heatmap || analysis["Topic Heatmap"]}</p>
+                  <p>{analysis.topic_heatmap || analysis["topic_heatmap"]}</p>
                 </div>
                 <div style={{ marginBottom: '1.5rem' }}>
                   <h4 style={{ color: 'var(--primary)' }}>Anomalies & Crisis</h4>
-                  <p>{analysis.anomalies_crisis || analysis["Anomalies & Crisis"]}</p>
+                  <p>{analysis.anomalies_crisis || analysis["anomalies_crisis"]}</p>
                 </div>
                 <div>
                   <h4 style={{ color: 'var(--primary)' }}>Future Prediction</h4>
-                  <p>{analysis.future_prediction || analysis["Future Prediction"]}</p>
+                  <p>{analysis.future_prediction || analysis["future_prediction"]}</p>
                 </div>
               </div>
             </div>

@@ -12,3 +12,4 @@ cors
 sherlock-project
 playwright
 pytest-playwright
+passlib[bcrypt]

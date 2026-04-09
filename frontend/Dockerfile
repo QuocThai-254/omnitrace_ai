@@ -5,7 +5,7 @@ WORKDIR /app
 
 # Copy package files và cài đặt
 COPY package.json package-lock.json* ./
-RUN npm install --frozen-lockfile
+RUN npm install
 
 # Copy mã nguồn và build
 COPY . .
