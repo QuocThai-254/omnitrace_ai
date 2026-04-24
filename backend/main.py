@@ -6,6 +6,7 @@ from services.identity import suggest_usernames, search_social_identity
 from services.scanner import get_cached_scan, save_scan_results, perform_scan
 from services.analyzer import analyze_user_behavior
 from chat.processor import get_initial_greeting, process_chat_message
+from services.insight_engine import process_full_insight
 
 app = FastAPI(title="OmniTrace AI API")
 
@@ -47,6 +48,13 @@ async def search_identity(
     else:
         result = search_social_identity(query, api_key)
     return {"query": query, "suggested_usernames": result}
+
+
+@app.post("/infer-insight")
+async def infer_insight(profiles: list = Body(..., embed=True)):
+    # profiles: list of {"platform": ..., "url": ...}
+    results = await process_full_insight(profiles)
+    return {"results": results}
 
 
 @app.post("/chat-message")

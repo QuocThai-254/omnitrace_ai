@@ -23,7 +23,7 @@ def suggest_usernames(query: str, api_key: str):
                 {
                     "platform": "Instagram",
                     "username": "sontungmtp",
-                    "url": "https://www.instagram.com/sontungmtp/",
+                    "url": "https://www.instagram.com/sontungmtp",
                 },
                 {
                     "platform": "X (Twitter)",

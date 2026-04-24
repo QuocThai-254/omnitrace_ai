@@ -145,3 +145,4 @@ vite.config.ts.timestamp-*
 omnitrace-27551-firebase-adminsdk.json
 .env
 mock_data.txt
+GEMINI.md
