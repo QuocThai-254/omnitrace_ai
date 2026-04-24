@@ -75,11 +75,6 @@ INVALID_SIGNALS = [
     "this page isn’t available",
     "not found",
     "page not found",
-    "login",
-    "log in",
-    "sign in",
-    "đăng nhập",
-    "accounts/login",
 ]
 
 NUMBER_TOKEN_PATTERN = re.compile(
@@ -128,8 +123,6 @@ def text_has_keywords(text: str, keywords):
 
 def parse_compact_number(token: str):
     # Print input ngay khi nhận
-    print(f"Input:  '{token}'")
-
     if not token:
         print("Output: None")
         return None
@@ -147,7 +140,6 @@ def parse_compact_number(token: str):
         elif re.fullmatch(r"\d+(\.\d+)?", t):
             result = int(float(t))
     except Exception as e:
-        print(f"Error: {e}")
         result = None
 
     # Print output trước khi trả về

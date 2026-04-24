@@ -26,10 +26,6 @@ async def validate_rendered_page(url: str, page):
         html = await page.content()
         html_l = html.lower()
 
-        # Kiểm tra nếu final_url là trang đăng nhập
-        if "accounts/login" in final_url.lower() or "/login" in final_url.lower():
-            return {"valid": False, "reason": "redirected_to_login", "final_url": final_url, "html": html}
-
         valid = not any(sig in html_l for sig in INVALID_SIGNALS)
 
         return {
